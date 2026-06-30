@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Định Dạng Cookie Facebook Đa Năng</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 850px;
+        }
+        h2 {
+            color: #1877f2;
+            margin-top: 0;
+            text-align: center;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 10px;
+            border: 1px solid #ccd0d5;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 13px;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #1877f2;
+        }
+        .control-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            background: #f7f8fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px dashed #ccd0d5;
+        }
+        .format-select {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccd0d5;
+            font-size: 14px;
+            font-weight: 500;
+            outline: none;
+        }
+        select:focus {
+            border-color: #1877f2;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            min-width: 250px;
+        }
+        button {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .btn-convert {
+            background-color: #1877f2;
+            color: white;
+        }
+        .btn-convert:hover {
+            background-color: #155dbb;
+        }
+        .btn-copy {
+            background-color: #e4e6eb;
+            color: #050505;
+        }
+        .btn-copy:hover {
+            background-color: #d8dadf;
+        }
+        .btn-copy.success {
+            background-color: #28a745;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🔄 Facebook Cookie Formatter Pro</h2>
+    
+    <label for="inputRaw">1. Dán dữ liệu của bạn vào đây (Hỗ trợ cả JSON hoặc Text/Cookie thô):</label>
+    <textarea id="inputRaw" placeholder="Dán danh sách cookie thô hoặc chuỗi JSON vào đây... Tool sẽ tự động nhận diện!"></textarea>
+    
+    <div class="control-panel">
+        <div class="format-select">
+            <label style="margin-bottom: 0;">Định dạng đầu ra:</label>
+            <select id="outputType">
+                <option value="standard">Cơ bản (c_user; fr; xs;)</option>
+                <option value="uid_cookie">Mở rộng (UID | Full Cookie sạch)</option>
+            </select>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn-convert" onclick="processCookies()">⚡ Chuyển Đổi</button>
+            <button class="btn-copy" id="copyBtn" onclick="copyResult()">📋 Copy Kết Quả</button>
+        </div>
+    </div>
+    
+    <label for="outputTxt">2. Kết quả sau khi chuẩn hóa và lọc trùng:</label>
+    <textarea id="outputTxt" readonly placeholder="Kết quả định dạng sạch sẽ xuất hiện ở đây..."></textarea>
+</div>
+
+<script>
+function extractTokens(cookieStr) {
+    const c_user = cookieStr.match(/c_user=([^;]+)/)?.[1] || '';
+    const fr = cookieStr.match(/fr=([^;]+)/)?.[1] || '';
+    const xs = cookieStr.match(/xs=([^;]+)/)?.[1] || '';
+    const sb = cookieStr.match(/sb=([^;]+)/)?.[1] || '';
+    const datr = cookieStr.match(/datr=([^;]+)/)?.[1] || '';
+    const dbln = cookieStr.match(/dbln=([^;]+)/)?.[1] || '';
+    const locale = cookieStr.match(/locale=([^;]+)/)?.[1] || '';
+    const wd = cookieStr.match(/wd=([^;]+)/)?.[1] || '';
+    
+    return { c_user, fr, xs, sb, datr, dbln, locale, wd };
+}
+
+function processCookies() {
+    const inputData = document.getElementById('inputRaw').value.trim();
+    const outputType = document.getElementById('outputType').value;
+    const outputArea = document.getElementById('outputTxt');
+    
+    if (!inputData) {
+        alert('Vui lòng dán dữ liệu vào ô nhập liệu!');
+        return;
+    }
+
+    let rawStrings = [];
+
+    // Bước 1: Thử phân tích cú pháp dạng JSON, nếu lỗi thì chuyển sang xử lý text dòng thô
+    try {
+        const parsedJson = JSON.parse(inputData);
+        if (typeof parsedJson === 'object' && parsedJson !== null) {
+            rawStrings = Object.values(parsedJson).map(val => String(val));
+        }
+    } catch (e) {
+        // Không phải JSON, xử lý cắt theo từng dòng text thô
+        rawStrings = inputData.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    }
+
+    // Bước 2: Bóc tách, cập nhật gộp và loại bỏ trùng lặp dựa trên UID (c_user)
+    const uniqueAccounts = {};
+
+    rawStrings.forEach(str => {
+        const tokens = extractTokens(str);
+        const uid = tokens.c_user;
+        
+        if (uid) {
+            // Nếu tài khoản chưa có hoặc dữ liệu mới đầy đủ token hơn thì cập nhật/gộp vào
+            if (!uniqueAccounts[uid]) {
+                uniqueAccounts[uid] = tokens;
+            } else {
+                // Điền khuyết các giá trị nếu dòng sau chứa token đầy đủ hơn dòng trước
+                Object.keys(tokens).forEach(key => {
+                    if (tokens[key] && !uniqueAccounts[uid][key]) {
+                        uniqueAccounts[uid][key] = tokens[key];
+                    }
+                });
+            }
+        }
+    });
+
+    // Bước 3: Xuất dữ liệu dựa theo định dạng tuỳ chọn từ Select Box
+    const results = [];
+    
+    Object.keys(uniqueAccounts).forEach(uid => {
+        const acc = uniqueAccounts[uid];
+        
+        if (outputType === 'standard') {
+            // Định dạng: c_user=...; fr=...; xs=...;
+            let buildStr = `c_user=${acc.c_user};`;
+            if (acc.fr) buildStr += ` fr=${acc.fr};`;
+            if (acc.xs) buildStr += ` xs=${acc.xs};`;
+            results.push(buildStr);
+        } else if (outputType === 'uid_cookie') {
+            // Định dạng: UID|Full Cookie sạch (Loại bỏ các token rác như presence)
+            let cookieParts = [];
+            if (acc.sb) cookieParts.push(`sb=${acc.sb}`);
+            if (acc.datr) cookieParts.push(`datr=${acc.datr}`);
+            cookieParts.push(`c_user=${acc.c_user}`);
+            if (acc.xs) cookieParts.push(`xs=${acc.xs}`);
+            if (acc.fr) cookieParts.push(`fr=${acc.fr}`);
+            if (acc.wd) cookieParts.push(`wd=${acc.wd}`);
+            if (acc.locale) cookieParts.push(`locale=${acc.locale}`);
+            if (acc.dbln) cookieParts.push(`dbln=${acc.dbln}`);
+            
+            const cleanCookie = cookieParts.join('; ') + ';';
+            results.push(`${uid}|${cleanCookie}`);
+        }
+    });
+
+    if (results.length === 0) {
+        outputArea.value = "Không tìm thấy dữ liệu cookie hay c_user hợp lệ nào!";
+    } else {
+        outputArea.value = results.join('\n');
+    }
+}
+
+function copyResult() {
+    const outputArea = document.getElementById('outputTxt');
+    const copyBtn = document.getElementById('copyBtn');
+    
+    if (!outputArea.value || outputArea.value.startsWith('Kết quả') || outputArea.value.startsWith('Không tìm thấy')) {
+        alert('Không có dữ liệu gì để copy!');
+        return;
+    }
+    
+    navigator.clipboard.writeText(outputArea.value).then(() => {
+        const originalText = copyBtn.innerHTML;
+        copyBtn.innerHTML = "✅ Đã Copy Thành Công!";
+        copyBtn.classList.add('success');
+        
+        setTimeout(() => {
+            copyBtn.innerHTML = originalText;
+            copyBtn.classList.remove('remove'); // Reset class
+            copyBtn.innerHTML = "📋 Copy Kết Quả";
+            copyBtn.classList.remove('success');
+        }, 2000);
+    }).catch(err => {
+        alert('Lỗi khi copy: ' + err);
+    });
+}
+</script>
+
+</body>
+</html>

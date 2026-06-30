@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TwoFA.co - Get 2FA Codes in Seconds</title>
+    <!-- Thêm thư viện OTPAuth từ CDN để tính toán mã 2FA trực tiếp ở Client-side -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/otpauth/9.1.4/otpauth.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            display: block;
+            padding: 20px 12px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            padding: 24px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Header */
+        .header {
+            display: table;
+            width: 100%;
+            margin-bottom: 24px;
+        }
+        .logo-area {
+            display: table-cell;
+            vertical-align: middle;
+            font-size: 18pt;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .logo-icon {
+            color: #2563eb;
+            margin-right: 4px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .menu-btn {
+            display: table-cell;
+            text-align: right;
+            vertical-align: middle;
+            font-size: 20px;
+            color: #64748b;
+            cursor: pointer;
+        }
+
+        h1 {
+            font-size: 20pt;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 8px;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-size: 11pt;
+            color: #64748b;
+            margin-bottom: 24px;
+            line-height: 1.4;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 10.5pt;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 11pt;
+            color: #334155;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        textarea.error-border {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+        }
+
+        .help-text {
+            font-size: 9.5pt;
+            color: #64748b;
+            margin-top: 6px;
+        }
+
+        .error-message {
+            font-size: 10pt;
+            color: #ef4444;
+            margin-top: 6px;
+            display: none;
+            font-weight: 500;
+        }
+
+        /* Privacy/Trust Badge */
+        .trust-badge {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 9.5pt;
+            color: #166534;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .btn-submit {
+            display: block;
+            width: 100%;
+            background-color: #0f172a;
+            color: #ffffff;
+            border: none;
+            padding: 12px 24px;
+            font-size: 11pt;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-align: center;
+        }
+
+        .btn-submit:hover {
+            background-color: #1e293b;
+        }
+
+        /* Results Area */
+        .results-container {
+            margin-top: 24px;
+            display: none;
+        }
+
+        .result-item {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .result-secret {
+            font-size: 9pt;
+            color: #64748b;
+            word-break: break-all;
+            margin-bottom: 4px;
+        }
+
+        .result-code-wrapper {
+            display: table;
+            width: 100%;
+        }
+
+        .result-code {
+            display: table-cell;
+            font-size: 18pt;
+            font-weight: bold;
+            color: #2563eb;
+            letter-spacing: 2px;
+        }
+
+        .btn-copy {
+            display: table-cell;
+            text-align: right;
+            width: 70px;
+            font-size: 10pt;
+            color: #2563eb;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-area"><span class="logo-icon">🔒</span> TwoFA.co</div>
+        <div class="menu-btn">&#9776;</div>
+    </div>
+
+    <!-- Title -->
+    <h1>Get 2FA Codes in Seconds</h1>
+    <p class="subtitle">Quickly access your two-factor authentication codes anytime.</p>
+
+    <!-- Trust Privacy Banner -->
+    <div class="trust-badge">
+        <strong>🔒 Bảo mật tuyệt đối:</strong> Toàn bộ quá trình tạo mã được xử lý trực tiếp tại trình duyệt của bạn (Client-side). Key 2FA không bao giờ được gửi lên Server.
+    </div>
+
+    <!-- Form -->
+    <div class="form-group">
+        <label for="secretKeys">Enter 2FA Secret Keys</label>
+        <textarea id="secretKeys" placeholder="KRUG S4ZN 5XGY 2LOM ...&#10;Mỗi dòng ứng với một khóa bí mật (Secret Key)"></textarea>
+        <div class="help-text">Each key on a separate line will receive one code.</div>
+        <div class="error-message" id="errorMessage">Please enter secrets.</div>
+    </div>
+
+    <button class="btn-submit" id="btnGetCodes">Get 2FA Codes</button>
+
+    <!-- Results Area -->
+    <div class="results-container" id="resultsContainer">
+        <label style="margin-bottom: 10px;">Your 2FA Codes:</label>
+        <div id="resultsList"></div>
+    </div>
+</div>
+
+<script>
+    // Xử lý logic tạo mã mã 2FA bằng thư viện OTPAuth
+    document.getElementById('btnGetCodes').addEventListener('click', function() {
+        const txtArea = document.getElementById('secretKeys');
+        const errDiv = document.getElementById('errorMessage');
+        const resContainer = document.getElementById('resultsContainer');
+        const resList = document.getElementById('resultsList');
+        
+        const rawInput = txtArea.value.trim();
+        
+        if (!rawInput) {
+            txtArea.classList.add('error-border');
+            errDiv.style.display = 'block';
+            resContainer.style.display = 'none';
+            return;
+        }
+
+        // Reset Trạng thái lỗi
+        txtArea.classList.remove('error-border');
+        errDiv.style.display = 'none';
+        resList.innerHTML = '';
+
+        // Tách chuỗi theo từng dòng để xử lý hàng loạt
+        const lines = rawInput.split(/\r?\n/);
+        let hasValidCodes = false;
+
+        lines.forEach(line => {
+            // Xóa khoảng trắng trong key bí mật
+            const secret = line.trim().replace(/\s+/g, '');
+            if (!secret) return;
+
+            let code = "N/A";
+            let success = true;
+
+            try {
+                // Tạo đối tượng TOTP sử dụng thư viện OTPAuth
+                let totp = new OTPAuth.TOTP({
+                    secret: OTPAuth.Secret.fromBase32(secret),
+                    digits: 6,
+                    period: 30
+                });
+                code = totp.generate();
+                hasValidCodes = true;
+            } catch (e) {
+                code = "Invalid Key";
+                success = false;
+            }
+
+            // Tạo thành phần giao diện kết quả
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'result-item';
+
+            // Cắt ngắn chuỗi hiển thị nếu quá dài để tránh vỡ giao diện
+            const displaySecret = line.trim().length > 30 ? line.trim().substring(0, 27) + '...' : line.trim();
+
+            itemDiv.innerHTML = `
+                <div class="result-secret">Key: ${displaySecret}</div>
+                <div class="result-code-wrapper">
+                    <div class="result-code" style="${!success ? 'color: #ef4444; font-size:12pt;' : ''}">${code}</div>
+                    ${success ? `<div class="btn-copy" onclick="navigator.clipboard.writeText('${code}'); alert('Đã copy: ' + '${code}');">Copy</div>` : ''}
+                </div>
+            `;
+            resList.appendChild(itemDiv);
+        });
+
+        if (hasValidCodes || resList.children.length > 0) {
+            resContainer.style.display = 'block';
+        }
+    });
+</script>
+
+</body>
+</html>

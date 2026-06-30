@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TwoFA.co - Facebook Account Manager</title>
+    <!-- Thược viện OTPAuth tạo mã 2FA Client-side -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/otpauth/9.1.4/otpauth.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            padding: 20px;
+        }
+
+        .header {
+            max-width: 1100px;
+            margin: 0 auto 16px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-area {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        .logo-icon {
+            color: #2563eb;
+            margin-right: 4px;
+        }
+
+        .main-layout {
+            display: flex;
+            max-width: 1100px;
+            margin: 0 auto;
+            gap: 20px;
+        }
+
+        /* Khung Panel chung */
+        .panel {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .left-panel {
+            flex: 1.5;
+        }
+
+        .right-panel {
+            flex: 1;
+            height: fit-content;
+        }
+
+        h2 {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 8px;
+        }
+
+        /* Form nhập tài khoản */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        input, textarea {
+            padding: 10px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 10.5pt;
+            outline: none;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #2563eb;
+        }
+
+        .input-uid { flex: 1; }
+        .input-name { flex: 1; }
+        .input-key { flex: 2; }
+
+        .btn-add {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 0 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-add:hover { background-color: #1d4ed8; }
+
+        /* Bảng danh sách tài khoản */
+        .table-wrapper {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        .btn-action {
+            padding: 4px 8px;
+            font-size: 9pt;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 4px;
+            font-weight: 500;
+        }
+
+        .btn-get { background-color: #0f172a; color: white; }
+        .btn-get:hover { background-color: #1e293b; }
+        .btn-del { background-color: #ef4444; color: white; }
+        .btn-del:hover { background-color: #dc2626; }
+
+        /* Phần hiển thị Code 2FA bên phải */
+        .code-box {
+            background: #f1f5f9;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .target-account {
+            font-size: 10pt;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .live-code {
+            font-size: 24pt;
+            font-weight: 800;
+            color: #2563eb;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+        }
+
+        .btn-copy-big {
+            background: #0f172a;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-copy-big:hover { background-color: #1e293b; }
+
+        /* Khung quét nhanh hàng loạt */
+        .bulk-area {
+            margin-top: 20px;
+        }
+        
+        .bulk-textarea {
+            width: 100%;
+            height: 80px;
+            resize: none;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .main-layout { flex-direction: column; }
+            .input-group { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo-area"><span class="logo-icon">🔒</span> TwoFA.co</div>
+    </div>
+
+    <div class="main-layout">
+        <!-- BÊN TRÁI: QUẢN LÝ TÀI KHOẢN FACEBOOK -->
+        <div class="panel left-panel">
+            <h2>Quản Lý Tài Khoản Facebook</h2>
+            
+            <!-- Form thêm tay -->
+            <div class="input-group">
+                <input type="text" id="accUid" class="input-uid" placeholder="UID Facebook">
+                <input type="text" id="accName" class="input-name" placeholder="Tên gợi nhớ">
+                <input type="text" id="accKey" class="input-key" placeholder="Mã bảo mật 2FA (Secret Key)">
+                <button class="btn-add" onclick="addAccount()">Thêm</button>
+            </div>
+
+            <!-- Bảng lưu trữ -->
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>UID</th>
+                            <th>Tên tài khoản</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountTableBody">
+                        <!-- Dữ liệu tài khoản sẽ tự động load vào đây -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Thêm nhanh hàng loạt định dạng UID|Pass|2FA... -->
+            <div class="bulk-area">
+                <h2>Thêm Nhanh Hàng Loạt</h2>
+                <textarea id="bulkInput" class="bulk-textarea" placeholder="Nhập định dạng: UID|Name|2FA_KEY hoặc UID|2FA_KEY (Mỗi tài khoản 1 dòng)"></textarea>
+                <button class="btn-add" style="background-color: #10b981;" onclick="addBulkAccounts()">Import Hàng Loạt</button>
+            </div>
+        </div>
+
+        <!-- BÊN PHẢI: LẤY MÃ 2FA NHANH -->
+        <div class="panel right-panel">
+            <h2>Bộ Tạo Mã 2FA</h2>
+            <div class="code-box">
+                <div class="target-account" id="activeAccount">Chưa chọn tài khoản</div>
+                <div class="live-code" id="activeCode">------</div>
+                <button class="btn-copy-big" id="btnCopyCode" disabled onclick="copyActiveCode()">Sao Chép Mã Code</button>
+            </div>
+            <p style="font-size: 8.5pt; color: #64748b; margin-top: 10px; text-align: center;">
+                💡 Dữ liệu lưu cục bộ trong máy (LocalStorage), an toàn tuyệt đối, không sợ lộ tài khoản.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Khởi tạo hoặc lấy danh sách tài khoản từ LocalStorage
+        let accounts = JSON.parse(localStorage.getItem('fb_accounts')) || [];
+        let currentSecret = "";
+
+        // Hàm hiển thị danh sách ra bảng
+        function renderAccounts() {
+            const tbody = document.getElementById('accountTableBody');
+            tbody.innerHTML = '';
+            
+            if(accounts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">Chưa lưu tài khoản nào.</td></tr>';
+                return;
+            }
+
+            accounts.forEach((acc, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight:500;">${acc.uid}</td>
+                    <td>${acc.name || '---'}</td>
+                    <td>
+                        <button class="btn-action btn-get" onclick="selectAccount('${acc.uid}', '${acc.name}', '${acc.key}')">Lấy Mã</button>
+                        <button class="btn-action btn-del" onclick="deleteAccount(${index})">Xóa</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Lưu dữ liệu vào LocalStorage
+        function saveToStorage() {
+            localStorage.setItem('fb_accounts', JSON.stringify(accounts));
+            renderAccounts();
+        }
+
+        // Thêm 1 tài khoản
+        function addAccount() {
+            const uid = document.getElementById('accUid').value.trim();
+            const name = document.getElementById('accName').value.trim();
+            const key = document.getElementById('accKey').value.trim().replace(/\s+/g, '');
+
+            if (!uid || !key) {
+                alert('Vui lòng nhập tối thiểu UID và mã 2FA Key!');
+                return;
+            }
+
+            accounts.push({ uid, name, key });
+            saveToStorage();
+
+            // Xóa form nhập
+            document.getElementById('accUid').value = '';
+            document.getElementById('accName').value = '';
+            document.getElementById('accKey').value = '';
+        }
+
+        // Thêm hàng loạt (Import Bulk) dành cho dân làm farm nuôi nick
+        function addBulkAccounts() {
+            const bulkText = document.getElementById('bulkInput').value.trim();
+            if (!bulkText) return;
+
+            const lines = bulkText.split(/\r?\n/);
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                const parts = line.split('|');
+                
+                if (parts.length >= 2) {
+                    let uid = parts[0].trim();
+                    let name = "";
+                    let key = "";
+
+                    // Nếu định dạng UID|Name|2FA_KEY
+                    if (parts.length >= 3 && parts[2].trim().length >= 16) {
+                        name = parts[1].trim();
+                        key = parts[2].trim().replace(/\s+/g, '');
+                    } else {
+                        // Nếu định dạng UID|2FA_KEY hoặc UID|Pass|2FA... kiểm tra chuỗi token 2FA phù hợp
+                        for (let i = 1; i < parts.length; i++) {
+                            let cleanPart = parts[i].trim().replace(/\s+/g, '');
+                            if (cleanPart.length >= 16 && /^[A-Z2-7=]+$/i.test(cleanPart)) {
+                                key = cleanPart;
+                                break;
+                            }
+                        }
+                        name = "Imported";
+                    }
+
+                    if (uid && key) {
+                        accounts.push({ uid, name, key });
+                    }
+                }
+            });
+
+            saveToStorage();
+            document.getElementById('bulkInput').value = '';
+            alert('Đã import thành công các tài khoản hợp lệ!');
+        }
+
+        // Xóa tài khoản
+        function deleteAccount(index) {
+            if (confirm('Bạn có chắc muốn xóa tài khoản này không?')) {
+                accounts.splice(index, 1);
+                saveToStorage();
+            }
+        }
+
+        // Chọn tài khoản để lấy mã 2FA
+        function selectAccount(uid, name, key) {
+            document.getElementById('activeAccount').innerText = `${name} (${uid})`;
+            currentSecret = key;
+            generateLiveCode();
+            document.getElementById('btnCopyCode').disabled = false;
+        }
+
+        // Hàm tính toán mã code 2FA thực tế
+        function generateLiveCode() {
+            if (!currentSecret) return;
+            try {
+                let totp = new OTPAuth.TOTP({
+                    secret: OTPAuth.Secret.fromBase32(currentSecret),
+                    digits: 6,
+                    period: 30
+                });
+                document.getElementById('activeCode').innerText = totp.generate();
+            } catch (e) {
+                document.getElementById('activeCode').innerText = "Key Lỗi";
+            }
+        }
+
+        // Copy mã code nhanh
+        function copyActiveCode() {
+            const code = document.getElementById('activeCode').innerText;
+            if (code && code !== "------" && code !== "Key Lỗi") {
+                navigator.clipboard.writeText(code);
+                
+                // Hiển thị hiệu ứng copy thành công tạm thời trên nút
+                const btn = document.getElementById('btnCopyCode');
+                const originalText = btn.innerText;
+                btn.innerText = "Đã Copy: " + code;
+                btn.style.backgroundColor = "#10b981";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.backgroundColor = "#0f172a";
+                }, 1500);
+            }
+        }
+
+        // Tự động làm mới mã 2FA sau mỗi 5 giây (nếu có tài khoản đang chọn) để tránh lệch thời gian
+        setInterval(generateLiveCode, 5000);
+
+        // Chạy load danh sách khi mở trang
+        renderAccounts();
+    </script>
+</body>
+</html>
