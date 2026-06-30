@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TwoFA.co - FB Account & Cookie Manager</title>
+    <!-- Thư viện OTPAuth tạo mã 2FA Client-side -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/otpauth/9.1.4/otpauth.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            padding: 20px;
+        }
+
+        .header {
+            max-width: 1200px;
+            margin: 0 auto 16px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-area {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        .logo-icon {
+            color: #2563eb;
+            margin-right: 4px;
+        }
+
+        .main-layout {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 20px;
+        }
+
+        /* Khung Panel chung */
+        .panel {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .left-panel {
+            flex: 2;
+        }
+
+        .right-panel {
+            flex: 0.8;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        h2 {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 8px;
+        }
+
+        /* Form nhập tài khoản */
+        .input-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.5fr 1.5fr auto;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        input, textarea {
+            padding: 10px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 10pt;
+            outline: none;
+            width: 100%;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #2563eb;
+        }
+
+        .btn-add {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 0 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-add:hover { background-color: #1d4ed8; }
+
+        /* Bảng danh sách tài khoản */
+        .table-wrapper {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #64748b;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Ô hiển thị cookie rút gọn trong bảng */
+        .cookie-cell {
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #475569;
+            font-family: monospace;
+            cursor: pointer;
+        }
+
+        .cookie-cell:hover {
+            color: #2563eb;
+            text-decoration: underline;
+        }
+
+        .btn-action {
+            padding: 5px 10px;
+            font-size: 8.5pt;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 4px;
+            font-weight: 500;
+        }
+
+        .btn-get { background-color: #0f172a; color: white; }
+        .btn-get:hover { background-color: #1e293b; }
+        .btn-copy-ck { background-color: #0ea5e9; color: white; }
+        .btn-copy-ck:hover { background-color: #0284c7; }
+        .btn-del { background-color: #ef4444; color: white; }
+        .btn-del:hover { background-color: #dc2626; }
+
+        /* Phần hiển thị Code 2FA bên phải */
+        .code-box {
+            background: #f1f5f9;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .target-account {
+            font-size: 10pt;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .live-code {
+            font-size: 24pt;
+            font-weight: 800;
+            color: #2563eb;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+        }
+
+        .btn-copy-big {
+            background: #0f172a;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-copy-big:hover { background-color: #1e293b; }
+
+        /* Khung quét nhanh hàng loạt */
+        .bulk-area {
+            margin-top: 24px;
+        }
+        
+        .bulk-textarea {
+            width: 100%;
+            height: 90px;
+            resize: vertical;
+            margin-bottom: 8px;
+            font-family: monospace;
+            font-size: 9pt;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout { flex-direction: column; }
+            .input-form { grid-template-columns: 1fr; }
+            .right-panel { position: static; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo-area"><span class="logo-icon">🔒</span> TwoFA.co</div>
+    </div>
+
+    <div class="main-layout">
+        <!-- BÊN TRÁI: QUẢN LÝ TÀI KHOẢN & COOKIE -->
+        <div class="panel left-panel">
+            <h2>Quản Lý Tài Khoản Facebook</h2>
+            
+            <!-- Form thêm thủ công -->
+            <div class="input-form">
+                <input type="text" id="accUid" placeholder="UID Facebook">
+                <input type="text" id="accName" placeholder="Tên gợi nhớ">
+                <input type="text" id="accCookie" placeholder="Dán Cookie vào đây">
+                <input type="text" id="accKey" placeholder="Mã bảo mật 2FA Key">
+                <button class="btn-add" onclick="addAccount()">Thêm</button>
+            </div>
+
+            <!-- Bảng lưu trữ -->
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th width="15%">UID</th>
+                            <th width="15%">Tên</th>
+                            <th width="35%">Cookie (Click để copy nhanh)</th>
+                            <th width="35%">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountTableBody">
+                        <!-- Dữ liệu tự động đẩy vào đây -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Thêm nhanh hàng loạt từ hệ thống nuôi nick / mua via -->
+            <div class="bulk-area">
+                <h2>Thêm Nhanh Hàng Loạt (Bulk Import)</h2>
+                <textarea id="bulkInput" class="bulk-textarea" placeholder="Hỗ trợ các định dạng phân tách bằng dấu gạch đứng '|'&#10;Ví dụ: UID|PASS|2FA|COOKIE hoặc UID|COOKIE|2FA... (Mỗi tài khoản 1 dòng)"></textarea>
+                <button class="btn-add" style="background-color: #10b981;" onclick="addBulkAccounts()">Import Hàng Loạt</button>
+            </div>
+        </div>
+
+        <!-- BÊN PHẢI: BỘ TẠO MÃ 2FA -->
+        <div class="panel right-panel">
+            <h2>Bộ Tạo Mã 2FA</h2>
+            <div class="code-box">
+                <div class="target-account" id="activeAccount">Chưa chọn tài khoản</div>
+                <div class="live-code" id="activeCode">------</div>
+                <button class="btn-copy-big" id="btnCopyCode" disabled onclick="copyActiveCode()">Sao Chép Mã Code</button>
+            </div>
+            <p style="font-size: 8.5pt; color: #64748b; margin-top: 12px; text-align: center;">
+                💡 Toàn bộ Cookie và Token được lưu an toàn tại <b>LocalStorage</b> trên thiết bị của bạn.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Tải dữ liệu từ trình duyệt
+        let accounts = JSON.parse(localStorage.getItem('fb_mix_accounts')) || [];
+        let currentSecret = "";
+
+        // Hiển thị danh sách ra bảng dữ liệu
+        function renderAccounts() {
+            const tbody = document.getElementById('accountTableBody');
+            tbody.innerHTML = '';
+            
+            if(accounts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding: 20px;">Danh sách trống. Vui lòng thêm tài khoản!</td></tr>';
+                return;
+            }
+
+            accounts.forEach((acc, index) => {
+                const tr = document.createElement('tr');
+                
+                // Rút gọn hiển thị cookie cho đẹp bảng
+                const shortCookie = acc.cookie ? acc.cookie : '---';
+
+                tr.innerHTML = `
+                    <td style="font-weight:600; color:#0f172a;">${acc.uid}</td>
+                    <td>${acc.name || '---'}</td>
+                    <td>
+                        <div class="cookie-cell" title="Click để copy nhanh Cookie đầy đủ" onclick="copyText('${acc.cookie}', 'Cookie')">
+                            ${shortCookie}
+                        </div>
+                    </td>
+                    <td>
+                        <button class="btn-action btn-get" onclick="selectAccount('${acc.uid}', '${acc.name}', '${acc.key}')">Lấy 2FA</button>
+                        <button class="btn-action btn-copy-ck" onclick="copyText('${acc.cookie}', 'Cookie')">Copy CK</button>
+                        <button class="btn-action btn-del" onclick="deleteAccount(${index})">Xóa</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Lưu dữ liệu vào LocalStorage
+        function saveToStorage() {
+            localStorage.setItem('fb_mix_accounts', JSON.stringify(accounts));
+            renderAccounts();
+        }
+
+        // Thêm lẻ 1 tài khoản
+        function addAccount() {
+            const uid = document.getElementById('accUid').value.trim();
+            const name = document.getElementById('accName').value.trim();
+            const cookie = document.getElementById('accCookie').value.trim();
+            const key = document.getElementById('accKey').value.trim().replace(/\s+/g, '');
+
+            if (!uid) {
+                alert('Vui lòng nhập UID tài khoản!');
+                return;
+            }
+
+            accounts.push({ uid, name, cookie, key });
+            saveToStorage();
+
+            // Reset form
+            document.getElementById('accUid').value = '';
+            document.getElementById('accName').value = '';
+            document.getElementById('accCookie').value = '';
+            document.getElementById('accKey').value = '';
+        }
+
+        // Import hàng loạt (Tự động nhận diện Cookie & 2FA Key trong chuỗi định dạng bất kỳ)
+        function addBulkAccounts() {
+            const bulkText = document.getElementById('bulkInput').value.trim();
+            if (!bulkText) return;
+
+            const lines = bulkText.split(/\r?\n/);
+            let importCount = 0;
+
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                const parts = line.split('|');
+                
+                if (parts.length >= 2) {
+                    let uid = parts[0].trim();
+                    let name = "Mới";
+                    let cookie = "";
+                    let key = "";
+
+                    parts.forEach(part => {
+                        let cleanPart = part.trim();
+                        
+                        // Nhận diện trường Cookie (thường chứa c_user= hoặc xs=)
+                        if (cleanPart.includes('c_user=') || cleanPart.includes('xs=')) {
+                            cookie = cleanPart;
+                        } 
+                        // Nhận diện mã bảo mật 2FA (chuỗi Base32 dài từ 16 ký tự trở lên, không chứa dấu bằng ở đầu)
+                        else if (cleanPart.replace(/\s+/g, '').length >= 16 && /^[A-Z2-7\s=]+$/i.test(cleanPart.replace(/\s+/g, ''))) {
+                            key = cleanPart.replace(/\s+/g, '');
+                        }
+                    });
+
+                    // Nếu không bóc tách được cookie, gán mặc định chuỗi thứ 2 hoặc thứ 3 nếu nó dài
+                    if (!cookie && parts.length >= 3) {
+                        for(let i=1; i<parts.length; i++) {
+                            if(parts[i].trim().length > 40 && !parts[i].includes(key)) {
+                                cookie = parts[i].trim();
+                                break;
+                            }
+                        }
+                    }
+
+                    if (uid) {
+                        accounts.push({ uid, name, cookie, key });
+                        importCount++;
+                    }
+                }
+            });
+
+            saveToStorage();
+            document.getElementById('bulkInput').value = '';
+            alert(`Đã hoàn tất xử lý! Import thành công ${importCount} tài khoản.`);
+        }
+
+        // Xóa tài khoản khỏi danh sách
+        function deleteAccount(index) {
+            if (confirm('Bạn muốn xóa tài khoản này khỏi hệ thống lưu trữ?')) {
+                accounts.splice(index, 1);
+                saveToStorage();
+            }
+        }
+
+        // Chọn tài khoản để đưa qua cột tính 2FA bên phải
+        function selectAccount(uid, name, key) {
+            document.getElementById('activeAccount').innerText = `${name || 'FB'} (${uid})`;
+            currentSecret = key;
+            generateLiveCode();
+            document.getElementById('btnCopyCode').disabled = false;
+        }
+
+        // Tính toán mã TOTP Live
+        function generateLiveCode() {
+            if (!currentSecret) {
+                document.getElementById('activeCode').innerText = "Không có Key";
+                return;
+            }
+            try {
+                let totp = new OTPAuth.TOTP({
+                    secret: OTPAuth.Secret.fromBase32(currentSecret),
+                    digits: 6,
+                    period: 30
+                });
+                document.getElementById('activeCode').innerText = totp.generate();
+            } catch (e) {
+                document.getElementById('activeCode').innerText = "Key Lỗi";
+            }
+        }
+
+        // Copy nhanh chuỗi text bất kỳ (Dùng cho cả Cookie và Nút bấm)
+        function copyText(text, label) {
+            if (!text || text === '---') {
+                alert(`Tài khoản này chưa lưu dữ liệu ${label}!`);
+                return;
+            }
+            navigator.clipboard.writeText(text);
+            alert(`Đã sao chép thành công ${label}!`);
+        }
+
+        // Copy mã code 2FA lớn ở bảng bên phải
+        function copyActiveCode() {
+            const code = document.getElementById('activeCode').innerText;
+            if (code && code !== "------" && !code.includes(" ")) {
+                navigator.clipboard.writeText(code);
+                
+                const btn = document.getElementById('btnCopyCode');
+                const originalText = btn.innerText;
+                btn.innerText = "Đã Copy: " + code;
+                btn.style.backgroundColor = "#10b981";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.backgroundColor = "#0f172a";
+                }, 1200);
+            }
+        }
+
+        // Tự động cập nhật lại mã code 2FA liên tục
+        setInterval(generateLiveCode, 5000);
+
+        // Khởi động bảng dữ liệu ban đầu
+        renderAccounts();
+    </script>
+</body>
+</html>
