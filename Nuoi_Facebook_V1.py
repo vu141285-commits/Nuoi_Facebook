@@ -308,30 +308,26 @@ class Facebook:
         self.session = requests.Session()
         self.id = self.cookie.split('c_user=')[1].split(';')[0]
         self.commented_posts = set()
-        
-        # ================= CHUYỂN TOÀN BỘ SANG GIẢ LẬP MOBILE =================
         self.headers = {
-            'authority': 'm.facebook.com',
+            'authority': 'www.facebook.com',
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-            'accept-language': 'vi-VN,vi;q=0.9',
-            'sec-ch-ua': '"Not_A Brand";v="99", "Google Chrome";v="124", "Chromium";v="124"',
-            'sec-ch-ua-mobile': '?1',  # Xác định là thiết bị di động
-            'sec-ch-ua-platform': '"Android"',  # Chuyển hệ điều hành sang Android khớp với phone
+            'accept-language': 'vi',
+            'sec-ch-prefers-color-scheme': 'light',
+            'sec-ch-ua': '"Chromium";v="106", "Google Chrome";v="106", "Not;A=Brand";v="99"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
             'sec-fetch-dest': 'document',
             'sec-fetch-mode': 'navigate',
             'sec-fetch-site': 'none',
             'sec-fetch-user': '?1',
             'upgrade-insecure-requests': '1',
-            # Dùng UA của thiết bị di động phổ biến
-            'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36',
+            'viewport-width': '1366',
             'Cookie': self.cookie
         }
         try:
-            # Chuyển hướng lấy mã token dtsg từ giao diện m.facebook.com thay vì www
-            url = self.session.get(f'https://m.facebook.com/{self.id}', headers=self.headers).url
+            url = self.session.get(f'https://www.facebook.com/{self.id}', headers=self.headers).url
             response = self.session.get(url, headers=self.headers).text
-            
-            # Cập nhật regex quét mã phù hợp với cấu trúc m.facebook
             matches = re.findall(r'\["DTSGInitialData",\[\],\{"token":"(.*?)"\}', response)
             if len(matches) > 0:
                 self.fb_dtsg += matches[0]
@@ -610,9 +606,9 @@ def main():
         return
 
     # Nhập cấu hình chung
-    delay = int(Prompt.ask("[bold white]Nhập delay chung (giây)[/]", default="180"))
-    so_nhiem_vu = int(Prompt.ask("[bold white]Nhập số nhiệm vụ muốn thực hiện[/]", default="9999"))
-    max_per_account = int(Prompt.ask("[bold white]Giới hạn nhiệm vụ mỗi tài khoản (anti-ban)[/]", default="9999"))
+    delay = int(Prompt.ask("[bold white]Nhập delay chung (giây)[/]", default="5"))
+    so_nhiem_vu = int(Prompt.ask("[bold white]Nhập số nhiệm vụ muốn thực hiện[/]", default="100"))
+    max_per_account = int(Prompt.ask("[bold white]Giới hạn nhiệm vụ mỗi tài khoản (anti-ban)[/]", default="20"))
 
     # Sinh nội dung bình luận tự động
     console.print("\n[bold yellow]SINH NỘI DUNG BÌNH LUẬN TỰ ĐỘNG[/]")
